@@ -1,0 +1,9 @@
+[workspace]
+members = ["extract"]
+
+
+[profile.release]
+# debug = true
+# codegen-units = 1
+# strip = true
+# lto = true
