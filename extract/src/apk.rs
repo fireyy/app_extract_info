@@ -1,1 +1,0 @@
-pub const APK_META_PATH: &str = "AndroidManifest.xml";

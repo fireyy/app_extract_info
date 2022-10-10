@@ -1,40 +1,31 @@
-use core::fmt;
-use std::{fs::File, io::BufReader};
+use std::{path::PathBuf, ffi::OsStr};
 
-use error::ExtResult;
-use ipa::IPA_META_PATH;
-use apk::APK_META_PATH;
+use error::{Error, ExtResult};
+use manifest::{
+    Manifest,
+    IPA_EXT, IpaManifest,
+    APK_EXT, ApkManifest,
+};
 
 pub mod error;
-pub mod ipa;
-pub mod apk;
+pub mod manifest;
 
-#[derive(Clone, Copy, PartialEq, Debug, Eq)]
-pub enum AppLoader {
-    Ipa,
-    Apk,
-}
-
-impl fmt::Display for AppLoader {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { fmt::Debug::fmt(self, f) }
-}
-
-pub fn get_loaders(file: &File) -> ExtResult<Vec<AppLoader>> {
-    let mut loader_vec = Vec::new();
-
-    let reader = BufReader::new(file);
+pub fn get_loaders(path: &PathBuf) -> ExtResult<Manifest> {
+    // let mut loader_vec = Vec::new();
+    let ext = path
+        .extension()
+        .and_then(OsStr::to_str);
     
-    let archive = zip::ZipArchive::new(reader)?;
-
-    let names: Vec<String> = archive.file_names().map(ToString::to_string).collect();
-
-    if names.contains(&IPA_META_PATH.to_string()) {
-        loader_vec.push(AppLoader::Ipa);
+    match ext {
+        Some(str) => {
+            if str == IPA_EXT {
+                IpaManifest::from_path(path)
+            } else if str == APK_EXT {
+                ApkManifest::from_path(path)
+            } else {
+                Err(Error::InvalidFile)
+            }
+        },
+        None => Err(Error::InvalidFile)
     }
-
-    if names.contains(&APK_META_PATH.to_string()) {
-        loader_vec.push(AppLoader::Apk);
-    }
-
-    Ok(loader_vec)
 }
