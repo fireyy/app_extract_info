@@ -1,5 +1,5 @@
 [workspace]
-members = ["extract"]
+members = ["extract", "main"]
 
 
 [profile.release]
