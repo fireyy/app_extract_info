@@ -1,4 +1,3 @@
-use core::fmt;
 use std::{
     fs::File,
     io::{BufReader, Read},
@@ -10,7 +9,7 @@ use lazy_static::lazy_static;
 use serde::Deserialize;
 use plist::{Value};
 use crate::{
-    error::{Error, ExtResult},
+    error::{ExtResult},
 };
 use super::Manifest;
 
@@ -31,10 +30,6 @@ pub struct IpaManifest {
     version: String,
     #[serde(rename = "CFBundleVersion")]
     build_number: String,
-}
-
-impl fmt::Display for IpaManifest {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { fmt::Debug::fmt(self, f) }
 }
 
 impl IpaManifest {
@@ -103,16 +98,16 @@ impl IpaManifest {
 
 fn find_ipa_icon_path (data: Value) -> String {
     let mut str = String::from(".app/Icon.png");
-    if let Some(icon) = data.as_dictionary() {
-        if let Some(icons) = icon.get("CFBundlePrimaryIcon") {
-            if let Some(icons) = icons.as_dictionary() {
-                if let Some(icons) = icons.get("CFBundleIconFiles") {
-                    if let Some(icons) = icons.as_array() {
-                        str = icons.last().unwrap().as_string().unwrap().to_string();
-                    }
-                }
-            }
-        }
+    if let Some(icon) = data.as_dictionary()
+        .and_then(|icon| icon.get("CFBundlePrimaryIcon"))
+        .and_then(|icons| icons.as_dictionary())
+        .and_then(|icons| icons.get("CFBundleIconFiles"))
+        .and_then(|icons| icons.as_array())
+        .and_then(|icons| icons.last())
+        .and_then(|icon| icon.as_string())
+        .and_then(|f| Some(f.to_string()))
+    {
+        str = icon
     }
 
     str
