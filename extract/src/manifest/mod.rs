@@ -6,6 +6,7 @@ mod apk;
 #[derive(Clone, Debug, Default)]
 pub struct Manifest {
     pub name: String,
+    // TODO: to base64 string
     pub icon: String,
     pub bundle_id: String,
     pub version: String,

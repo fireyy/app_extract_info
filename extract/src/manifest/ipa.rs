@@ -1,11 +1,3 @@
-use std::{
-    fs::File,
-    io::{BufReader, Read},
-    path::PathBuf,
-};
-use regex::Regex;
-use lazy_static::lazy_static;
-
 use serde::Deserialize;
 use plist::{Value};
 use crate::{
@@ -14,9 +6,6 @@ use crate::{
 use super::Manifest;
 
 pub const IPA_EXT: &str = "ipa";
-lazy_static! {
-    static ref IPA_META_PATH: Regex = Regex::new(r"Payload/[^/]+\.app/Info\.plist").unwrap();
-}
 
 #[derive(Deserialize, Clone, Debug)]
 pub struct IpaManifest {
@@ -56,41 +45,6 @@ impl IpaManifest {
                     }
                 )
             },
-            Err(err) => Err(err.into()),
-        }
-    }
-
-    pub fn from_path(path: &PathBuf) -> ExtResult<Manifest> {
-        let mut file = File::open(path)?;
-        Self::from_file(&mut file)
-    }
-
-    pub fn from_file(file: &mut File) -> ExtResult<Manifest> {
-        let mut name = String::new();
-        let reader = BufReader::new(file);
-
-        let mut archive = zip::ZipArchive::new(reader)?;
-
-        let names: Vec<String> = archive.file_names().map(ToString::to_string).collect();
-
-        for n in names {
-            if IPA_META_PATH.is_match(&n) {
-                name = n;
-            }
-        }
-
-        let file = archive.by_name(&name);
-
-        match file {
-            Ok(mut zip_file) => {
-                // let mut buf = String::new();
-                // let mut buf: [u8; 10] = Default::default();
-                let mut buf: Vec<u8> = Vec::new();
-                // zip_file.read_to_string(&mut buf)?;
-                zip_file.read_to_end(&mut buf)?;
-
-                Ok(Self::from_buffer(buf)?)
-            }
             Err(err) => Err(err.into()),
         }
     }

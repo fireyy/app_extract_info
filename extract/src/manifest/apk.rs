@@ -1,10 +1,3 @@
-use regex::Regex;
-use std::{
-    fs::File,
-    io::{BufReader, Read},
-    path::PathBuf,
-};
-use lazy_static::lazy_static;
 use xml::{EventReader, reader::XmlEvent};
 use crate::{
     error::{ExtResult},
@@ -12,16 +5,12 @@ use crate::{
 use super::Manifest;
 
 pub const APK_EXT: &str = "apk";
-lazy_static! {
-    static ref APK_META_PATH: Regex = Regex::new(r"AndroidManifest\.xml").unwrap();
-}
 
 pub struct ApkManifest {}
 
 impl ApkManifest {
     pub fn from_buffer(buf: Vec<u8>) -> ExtResult<Manifest> {
         let mut apk_info = Manifest::default();
-        apk_info.icon = String::from("res/drawable-xxxhdpi-v4/ic_launcher.png");
         let str = axml::extract_xml(buf);
         let reader = EventReader::from_str(&str);
         for e in reader {
@@ -44,6 +33,17 @@ impl ApkManifest {
                                 apk_info.bundle_id = attribute.value;
                             }
                         }
+                    }
+                    "application" => {
+                        for attribute in attributes {
+                            let attr = attribute.name.to_string();
+
+                            if attr.contains("label") {
+                                apk_info.name = attribute.value;
+                            } else if attr.contains("icon") {
+                                apk_info.icon = attribute.value;
+                            }
+                        }
                         return Ok(apk_info)
                     }
                     _ => {}
@@ -54,41 +54,6 @@ impl ApkManifest {
         }
 
         Ok(apk_info)
-    }
-
-    pub fn from_path(path: &PathBuf) -> ExtResult<Manifest> {
-        let mut file = File::open(path)?;
-        Self::from_file(&mut file)
-    }
-
-    pub fn from_file(file: &mut File) -> ExtResult<Manifest> {
-        let mut name = String::new();
-        let reader = BufReader::new(file);
-
-        let mut archive = zip::ZipArchive::new(reader)?;
-
-        let names: Vec<String> = archive.file_names().map(ToString::to_string).collect();
-
-        for n in names {
-            if APK_META_PATH.is_match(&n) {
-                name = n;
-            }
-        }
-
-        let file = archive.by_name(&name);
-
-        match file {
-            Ok(mut zip_file) => {
-                // let mut buf = String::new();
-                // let mut buf: [u8; 10] = Default::default();
-                let mut buf: Vec<u8> = Vec::new();
-                // zip_file.read_to_string(&mut buf)?;
-                zip_file.read_to_end(&mut buf)?;
-
-                Ok(Self::from_buffer(buf)?)
-            }
-            Err(err) => Err(err.into()),
-        }
     }
 }
 
