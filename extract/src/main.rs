@@ -1,17 +1,22 @@
 use std::{
     env,
-    fs,
-    io::{BufReader, Read},
+    path::PathBuf
 };
 use app_extract_info::{
-    error::{Error, ExtResult},
+    error::{ExtResult},
     get_loaders,
 };
 
 fn main() -> ExtResult<()> {
     let base_dir = env::current_dir().expect("not found path");
+    test_ipa(base_dir.clone());
+    test_apk(base_dir.clone());
+
+    Ok(())
+}
+
+fn test_ipa(base_dir: PathBuf) {
     let path = base_dir.join("test.ipa");
-    // let mut file = fs::File::open(&path)?;
     let result = get_loaders(&path);
     match result {
         Ok(ipa) => {
@@ -21,5 +26,17 @@ fn main() -> ExtResult<()> {
             println!("{:?}", err);
         }
     }
-    Ok(())
+}
+
+fn test_apk(base_dir: PathBuf) {
+    let path_apk = base_dir.join("test.apk");
+    let result = get_loaders(&path_apk);
+    match result {
+        Ok(apk) => {
+            println!("{:?}", apk);
+        }
+        Err(err) => {
+            println!("{:?}", err);
+        }
+    }
 }
