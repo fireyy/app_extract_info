@@ -64,18 +64,27 @@ impl HolderScreen {
             }
         }
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            ui.horizontal_centered(|ui| {
+        egui::CentralPanel::default()
+            .frame(egui::Frame {
+                rounding: egui::Rounding::same(10.0),
+                // outer_margin: egui::style::Margin::same(10.0),
+                inner_margin: egui::style::Margin::same(10.0),
+                stroke: egui::Stroke::new(10.0, egui::Color32::from_gray(60)),
+                ..egui::Frame::default()
+            })
+            .show(ctx, |ui| {
                 ui.vertical_centered_justified(|ui| {
                     match &mut self.state {
                         State::Idle(ref mut route) => {
                             match route {
                                 Route::Parse => {
-                                    if ui.button("Open file…").clicked() {
-                                        if let Some(path) = rfd::FileDialog::new().pick_file() {
-                                            self.picked_path = Some(path.display().to_string());
+                                    ui.centered_and_justified(|ui| {
+                                        if ui.button("Open file...").clicked() {
+                                            if let Some(path) = rfd::FileDialog::new().pick_file() {
+                                                self.picked_path = Some(path.display().to_string());
+                                            }
                                         }
-                                    }
+                                    });
                                     if let Some(err) = &self.err {
                                         ui.label(err);
                                     }
@@ -91,7 +100,6 @@ impl HolderScreen {
                     }
                 });
             });
-        });
 
         if !self.dropped_files.is_empty() {
             // for file in &self.dropped_files {
