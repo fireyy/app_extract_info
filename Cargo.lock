@@ -73,6 +73,7 @@ dependencies = [
 name = "app_extract_info"
 version = "0.1.0"
 dependencies = [
+ "arsc",
  "axmldecoder",
  "lazy_static",
  "plist",
@@ -123,6 +124,15 @@ name = "arrayvec"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
+
+[[package]]
+name = "arsc"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3cc61264494e5051c53939e7a1e68c52172f76e4c0e03ff9906a8ac1d80861f1"
+dependencies = [
+ "paste",
+]
 
 [[package]]
 name = "async-broadcast"
@@ -1908,6 +1918,12 @@ dependencies = [
  "rand_core",
  "subtle",
 ]
+
+[[package]]
+name = "paste"
+version = "1.0.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b1de2e551fb905ac83f73f7aedf2f0cb4a0da7e35efa24a202a936269f1f18e1"
 
 [[package]]
 name = "pbkdf2"

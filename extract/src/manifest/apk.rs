@@ -1,3 +1,4 @@
+use std::{io::Cursor};
 use xml::{EventReader, reader::XmlEvent};
 use crate::{
     error::{ExtResult},
@@ -6,10 +7,88 @@ use super::Manifest;
 
 pub const APK_EXT: &str = "apk";
 
+pub struct ResourceId {
+    id: u32,
+}
+
+impl ResourceId {
+    pub fn from_parts(package_id: u8, type_id: u8, entry_id: u16) -> ResourceId {
+        ResourceId {
+            id: ((package_id as u32) << 24) | ((type_id as u32) << 16) | entry_id as u32,
+        }
+    }
+
+    pub fn from_u32(id: u32) -> ResourceId {
+        ResourceId { id }
+    }
+
+    pub fn package_id(&self) -> u8 {
+        ((self.id & 0xff00_0000) >> 24) as u8
+    }
+
+    pub fn type_id(&self) -> u8 {
+        ((self.id & 0x00ff_0000) >> 16) as u8
+    }
+
+    pub fn entry_id(&self) -> u16 {
+        (self.id & 0x0000_ffff) as u16
+    }
+}
+
+fn find_resource_by_id (table: &arsc::Arsc, key: String) -> Option<String> {
+    let mut str = None;
+    let mut entry = vec![];
+    let id = key.replace("ResourceValueType::Reference/", "").parse::<u32>().unwrap();
+    let res_id = ResourceId::from_u32(id);
+    let p = table.packages.iter().find(|p| p.id == res_id.package_id().into()).unwrap();
+    let t = p.types.iter().find(|t| t.id == res_id.type_id().into()).unwrap();
+    
+    for e in &t.configs {
+        for a in &e.resources.resources {
+            if a.spec_id == res_id.entry_id().into() {
+                entry.push(&a.value);
+            }
+        }
+    }
+    // name_index, data_index, spec_id
+    if !entry.is_empty() {
+        let a = entry.get(0).unwrap();
+        if let arsc::ResourceValue::Plain(b) = &a {
+            match table.global_string_pool.strings.get(b.data_index) {
+                Some(v) => {
+                    str = Some(v.clone())
+                },
+                None => {}
+            }
+        }
+    }
+
+    str
+}
+
+fn parse_resource (buf: Vec<u8>, info: Manifest) -> ExtResult<Manifest> {
+    let mut info = info.clone();
+    let res = info.check();
+    let cursor = Cursor::new(&buf);
+    let table = arsc::parse_from(cursor)?;
+    for key in res {
+        match find_resource_by_id(&table, info.get(&key)) {
+            Some(v) => {
+                info.set(&key, v);
+            }
+            None => {}
+        }
+    }
+
+    Ok(
+        info
+    )
+}
+
 pub struct ApkManifest {}
 
 impl ApkManifest {
-    pub fn from_buffer(buf: Vec<u8>) -> ExtResult<Manifest> {
+    pub fn from_buffer(buf: Vec<u8>, arsc_buf: Vec<u8>) -> ExtResult<Manifest> {
         let mut apk_info = Manifest::default();
         let str = axml::extract_xml(buf);
         let reader = EventReader::from_str(&str);
@@ -29,7 +108,6 @@ impl ApkManifest {
                             } else if attr.contains("versionName") {
                                 apk_info.version = attribute.value;
                             } else if attr.contains("package") {
-                                apk_info.name = attribute.value.clone();
                                 apk_info.bundle_id = attribute.value;
                             }
                         }
@@ -44,7 +122,6 @@ impl ApkManifest {
                                 apk_info.icon = attribute.value;
                             }
                         }
-                        return Ok(apk_info)
                     }
                     _ => {}
                 },
@@ -53,7 +130,7 @@ impl ApkManifest {
             }
         }
 
-        Ok(apk_info)
+        parse_resource(arsc_buf, apk_info)
     }
 }
 
