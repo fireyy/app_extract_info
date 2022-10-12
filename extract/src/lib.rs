@@ -44,6 +44,7 @@ pub fn get_loaders(path: &PathBuf) -> ExtResult<Manifest> {
 pub fn get_from_path (path: &PathBuf, ext: &str) -> ExtResult<Manifest> {
     let file = File::open(path)?;
     let mut name = String::new();
+    let mut manifest = Manifest::default();
     let reader = BufReader::new(file);
     let mut arsc_buf: Vec<u8> = Vec::new();
 
@@ -51,13 +52,8 @@ pub fn get_from_path (path: &PathBuf, ext: &str) -> ExtResult<Manifest> {
 
     if ext == APK_EXT {
         name = APK_META_PATH.to_string();
-        let arsc_file = archive.by_name(&APK_ARSC_PATH);
-        match arsc_file {
-            Ok(mut zip_file) => {
-                zip_file.read_to_end(&mut arsc_buf)?;
-            }
-            Err(_) => {},
-        }
+        let mut arsc_file = archive.by_name(&APK_ARSC_PATH)?;
+        arsc_file.read_to_end(&mut arsc_buf)?;
     } else {
         let names: Vec<String> = archive.file_names().map(ToString::to_string).collect();
         for n in names {
@@ -68,19 +64,28 @@ pub fn get_from_path (path: &PathBuf, ext: &str) -> ExtResult<Manifest> {
         }
     }
 
-    let file = archive.by_name(&name);
+    let mut buf: Vec<u8> = Vec::new();
+    archive.by_name(&name)?
+        .read_to_end(&mut buf)?;
 
-    match file {
-        Ok(mut zip_file) => {
-            let mut buf: Vec<u8> = Vec::new();
-            zip_file.read_to_end(&mut buf)?;
-
-            if ext == APK_EXT {
-                Ok(ApkManifest::from_buffer(buf, arsc_buf)?)
-            } else {
-                Ok(IpaManifest::from_buffer(buf)?)
-            }
-        }
-        Err(err) => Err(err.into()),
+    if ext == APK_EXT {        
+        manifest = ApkManifest::from_buffer(buf, arsc_buf)?;
+        let mut icon_buf: Vec<u8> = Vec::new();
+        archive.by_name(&manifest.icon)?
+            .read_to_end(&mut icon_buf)?;
+        manifest.icon = base64::encode(icon_buf);
+    } else {
+        manifest = IpaManifest::from_buffer(buf)?;
+        let mut icon_buf: Vec<u8> = Vec::new();
+        let names = archive.file_names()
+                        .map(ToString::to_string)
+                        .filter(|f| f.contains(&manifest.icon))
+                        .collect::<Vec<String>>();
+        let name = names.first().unwrap();
+        archive.by_name(&name)?
+            .read_to_end(&mut icon_buf)?;
+        manifest.icon = base64::encode(icon_buf);
     }
+
+    Ok(manifest)
 }

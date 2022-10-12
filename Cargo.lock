@@ -75,6 +75,7 @@ version = "0.1.0"
 dependencies = [
  "arsc",
  "axmldecoder",
+ "base64",
  "lazy_static",
  "plist",
  "regex",
