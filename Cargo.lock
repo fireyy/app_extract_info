@@ -90,6 +90,7 @@ name = "app_main"
 version = "0.1.0"
 dependencies = [
  "app_extract_info",
+ "base64",
  "eframe",
  "egui",
  "egui_extras",

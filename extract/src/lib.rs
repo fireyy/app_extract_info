@@ -82,6 +82,7 @@ pub fn get_from_path (path: &PathBuf, ext: &str) -> ExtResult<Manifest> {
                         .filter(|f| f.contains(&manifest.icon))
                         .collect::<Vec<String>>();
         let name = names.first().unwrap();
+        println!("----{:?}", names);
         archive.by_name(&name)?
             .read_to_end(&mut icon_buf)?;
         manifest.icon = base64::encode(icon_buf);

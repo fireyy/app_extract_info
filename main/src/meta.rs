@@ -1,4 +1,5 @@
 use eframe::egui;
+use egui_extras::RetainedImage;
 use app_extract_info::{
     manifest::Manifest
 };
@@ -43,6 +44,20 @@ impl MetaScreen {
                 ui.horizontal(|ui| {
                     ui.label("Build:");
                     ui.label(data.build_number);
+                });
+                ui.horizontal(|ui| {
+                    ui.label("Icon:");
+                    match base64::decode(data.icon) {
+                        Ok(data) => {
+                            let icon = RetainedImage::from_image_bytes(
+                                "app_icon.png",
+                                &data,
+                            )
+                            .unwrap();
+                            icon.show_size(ui, egui::vec2(64.0, 64.0));
+                        }
+                        Err(_) => {}
+                    }
                 });
             });
         });

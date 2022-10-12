@@ -13,6 +13,7 @@ egui_extras = { version = "0.19.0", features = ["image"] }
 image = { version = "0.24.3", default-features = false, features = ["png"] }
 rfd = "0.10"
 app_extract_info = { path = "../extract" }
+base64 = "0.13.0"
 
 [profile.dev.package.eframe]
 opt-level = 3
